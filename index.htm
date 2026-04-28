@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <title>Tomato Growth Stage Detection — Full Study Guide</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -132,7 +135,119 @@
   .warn-box{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:.8rem 1rem;font-size:.82rem;color:#c9d1d9;margin:.8rem 0}
   .warn-box strong{color:var(--amber)}
 
-  @media(max-width:600px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+  /* ===== STICKY NAV WRAPPER ===== */
+  .nav-wrapper{position:sticky;top:0;z-index:100;background:var(--bg1);border-bottom:1px solid var(--border)}
+
+  /* ===== RESPONSIVE BREAKPOINTS ===== */
+
+  /* Tablets & small laptops */
+  @media(max-width:768px){
+    .grid2,.grid3,.grid4{grid-template-columns:1fr 1fr}
+    .grid3{grid-template-columns:1fr}
+    .grid4{grid-template-columns:1fr 1fr}
+    .content{padding:1.5rem 1rem}
+    header{padding:2rem 1.5rem 1.5rem}
+    header h1{font-size:1.4rem}
+  }
+
+  /* Mobile phones */
+  @media(max-width:600px){
+    /* Header */
+    header{padding:1.5rem 1rem 1.2rem}
+    header h1{font-size:1.2rem;line-height:1.4}
+    header p{font-size:.8rem}
+    .badge{font-size:11px;padding:2px 10px}
+    .meta-row{flex-direction:column;gap:.5rem;margin-top:.8rem}
+    .meta-item{font-size:.78rem}
+
+    /* Nav — horizontal swipeable tab bar */
+    .nav-wrapper{position:sticky;top:0;z-index:100;background:var(--bg1);border-bottom:1px solid var(--border)}
+    .nav-wrapper::after{content:'';position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(90deg,transparent,var(--bg1) 80%);pointer-events:none;z-index:2;transition:opacity .3s}
+    .nav-wrapper.scrolled-end::after{opacity:0}
+    .nav-wrapper::before{content:'';position:absolute;left:0;top:0;bottom:0;width:32px;background:linear-gradient(270deg,transparent,var(--bg1) 80%);pointer-events:none;z-index:2;opacity:0;transition:opacity .3s}
+    .nav-wrapper.scrolled-start::before{opacity:1}
+    nav{display:flex;flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;padding:0 .5rem;gap:0;scroll-snap-type:x proximity}
+    nav::-webkit-scrollbar{display:none}
+    nav{-ms-overflow-style:none;scrollbar-width:none}
+    .tab{flex:0 0 auto;padding:.7rem .9rem;font-size:.78rem;white-space:nowrap;border-bottom:2px solid transparent;scroll-snap-align:start;transition:color .2s,border-color .2s}
+    .tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+    /* Grids */
+    .grid2,.grid3,.grid4{grid-template-columns:1fr}
+
+    /* Content */
+    .content{padding:1.2rem .8rem}
+    h2{font-size:1.1rem;margin:1.4rem 0 .6rem}
+    h3{font-size:.92rem}
+    p{font-size:.85rem}
+
+    /* Cards */
+    .card{padding:1rem;margin:.5rem 0}
+    .stage-card{padding:.8rem}
+    .stage-num{font-size:1.2rem}
+
+    /* Tables — horizontal scroll */
+    table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+    thead,tbody,tr{display:table;width:100%;table-layout:auto}
+    table{display:block}
+    th,td{padding:.5rem .6rem;font-size:.75rem;min-width:100px}
+
+    /* Pipeline steps */
+    .pipe-step{gap:.6rem}
+    .step-icon{width:30px;height:30px;font-size:.75rem}
+    .step-body{padding-top:.2rem}
+    .step-title{font-size:.83rem}
+    .step-desc{font-size:.78rem}
+    .pipe-step::after{left:14px;top:34px}
+
+    /* Architecture boxes */
+    .arch-box{font-size:.78rem;padding:.6rem}
+    .arch-box small{font-size:.72rem}
+
+    /* Formulas / code blocks */
+    .formula{font-size:.75rem;padding:.6rem .8rem;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:pre-wrap;word-break:break-word}
+
+    /* Highlight boxes */
+    .highlight-box{padding:.6rem .8rem}
+    .highlight-box p{font-size:.8rem}
+
+    /* Warning boxes */
+    .warn-box{font-size:.78rem;padding:.6rem .8rem}
+
+    /* Viva Q&A — bigger touch targets */
+    .viva-q-head{padding:.9rem 1rem;font-size:.83rem;min-height:44px}
+    .viva-q-body{padding:0 .8rem .8rem;font-size:.78rem}
+
+    /* References */
+    .ref-item{flex-direction:column;gap:.3rem;font-size:.78rem}
+    .ref-num{min-width:auto}
+
+    /* Tags */
+    .tag{font-size:.7rem;padding:2px 5px}
+    .ref-tag{font-size:.68rem;padding:1px 5px}
+
+    /* SoftMax progress row */
+    .progress-bar{height:5px}
+
+    /* LPF visualization */
+    .lpf-vis{gap:.5rem}
+  }
+
+  /* Very small phones */
+  @media(max-width:380px){
+    header{padding:1.2rem .8rem 1rem}
+    header h1{font-size:1.05rem}
+    .content{padding:1rem .6rem}
+    .card{padding:.8rem}
+    h2{font-size:1rem}
+    .grid4{grid-template-columns:1fr}
+  }
+
+  /* Ensure touch-friendly tap targets everywhere */
+  @media(pointer:coarse){
+    .tab{min-height:44px;display:flex;align-items:center}
+    .viva-q-head{min-height:48px}
+  }
 </style>
 </head>
 <body>
@@ -140,7 +255,7 @@
 <header>
   <div class="badge">Research Presentation Prep — 2022E027 &amp; 2022E059</div>
   <h1>Leaf Density-Based Growth Stage Detection in Tomato Plants Using Deep Learning</h1>
-  <p>Department of Computer Engineering · University of Jaffna · Supervisor: Dr. P. Jeyananthan</p>
+  <p>Department of Computer Engineering · University of Jaffna</p>
   <div class="meta-row">
     <div class="meta-item">Architecture: <span>Dual-Branch CNN + U-Net</span></div>
     <div class="meta-item">Dataset: <span>~1,600 Images · 4 Stages</span></div>
@@ -149,17 +264,19 @@
   </div>
 </header>
 
-<nav>
-  <div class="tab active" onclick="showTab('overview')">Overview</div>
-  <div class="tab" onclick="showTab('dataset')">Dataset</div>
-  <div class="tab" onclick="showTab('architecture')">Architecture</div>
-  <div class="tab" onclick="showTab('branch1')">Branch 01 · U-Net</div>
-  <div class="tab" onclick="showTab('branch2')">Branch 02 · CNN</div>
-  <div class="tab" onclick="showTab('fusion')">Fusion &amp; Training</div>
-  <div class="tab" onclick="showTab('evaluation')">Evaluation</div>
-  <div class="tab" onclick="showTab('viva')">Viva Q&amp;A</div>
-  <div class="tab" onclick="showTab('refs')">References</div>
-</nav>
+<div class="nav-wrapper" id="navWrapper">
+  <nav id="mainNav">
+    <div class="tab active" data-tab="overview" onclick="showTab('overview',this)">Overview</div>
+    <div class="tab" data-tab="dataset" onclick="showTab('dataset',this)">Dataset</div>
+    <div class="tab" data-tab="architecture" onclick="showTab('architecture',this)">Architecture</div>
+    <div class="tab" data-tab="branch1" onclick="showTab('branch1',this)">Branch 01 · U-Net</div>
+    <div class="tab" data-tab="branch2" onclick="showTab('branch2',this)">Branch 02 · CNN</div>
+    <div class="tab" data-tab="fusion" onclick="showTab('fusion',this)">Fusion &amp; Training</div>
+    <div class="tab" data-tab="evaluation" onclick="showTab('evaluation',this)">Evaluation</div>
+    <div class="tab" data-tab="viva" onclick="showTab('viva',this)">Viva Q&amp;A</div>
+    <div class="tab" data-tab="refs" onclick="showTab('refs',this)">References</div>
+  </nav>
+</div>
 
 <!-- ======= OVERVIEW ======= -->
 <div class="content">
@@ -864,18 +981,43 @@ Prediction:         argmax(probabilities) → final growth stage
 </div><!-- /content -->
 
 <script>
-function showTab(id) {
+function showTab(id, tabEl) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('sec-' + id).classList.add('active');
-  event.target.classList.add('active');
+  tabEl.classList.add('active');
+  // Scroll active tab into view in the nav bar
+  scrollTabIntoView(tabEl);
   window.scrollTo({top:0,behavior:'smooth'});
+}
+function scrollTabIntoView(tabEl) {
+  const nav = document.getElementById('mainNav');
+  const navRect = nav.getBoundingClientRect();
+  const tabRect = tabEl.getBoundingClientRect();
+  // Center the tab in the visible nav area
+  const scrollLeft = tabEl.offsetLeft - (navRect.width / 2) + (tabRect.width / 2);
+  nav.scrollTo({left: scrollLeft, behavior: 'smooth'});
+}
+function updateScrollHints() {
+  const nav = document.getElementById('mainNav');
+  const wrapper = document.getElementById('navWrapper');
+  if (!nav || !wrapper) return;
+  const atStart = nav.scrollLeft > 10;
+  const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 10;
+  wrapper.classList.toggle('scrolled-start', atStart);
+  wrapper.classList.toggle('scrolled-end', atEnd);
 }
 function toggleViva(el) {
   const body = el.nextElementSibling;
   const isOpen = body.classList.contains('open');
   body.classList.toggle('open', !isOpen);
   el.classList.toggle('open', !isOpen);
+}
+// Setup scroll hint listeners
+const navEl = document.getElementById('mainNav');
+if (navEl) {
+  navEl.addEventListener('scroll', updateScrollHints, {passive: true});
+  updateScrollHints();
 }
 </script>
 </body>
