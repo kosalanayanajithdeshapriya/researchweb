@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tomato Growth Stage Detection — Full Study Guide</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;line-height:1.7;font-size:15px}
+  :root{
+    --green:#3fb950;--blue:#58a6ff;--amber:#d29922;--red:#f85149;--purple:#bc8cff;--teal:#39d353;
+    --bg0:#0d1117;--bg1:#161b22;--bg2:#21262d;--bg3:#30363d;
+    --border:#30363d;--muted:#8b949e;--text:#e6edf3
+  }
+  header{background:linear-gradient(135deg,#0d2137 0%,#0a1628 50%,#0d1117 100%);padding:2.5rem 2rem 2rem;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+  header::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(88,166,255,.08) 0%,transparent 70%);pointer-events:none}
+  .badge{display:inline-block;background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.3);border-radius:20px;padding:3px 12px;font-size:12px;letter-spacing:.5px;text-transform:uppercase;font-weight:600;margin-bottom:.8rem}
+  header h1{font-size:1.75rem;font-weight:700;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.3;margin-bottom:.4rem}
+  header p{color:var(--muted);font-size:.9rem}
+  .meta-row{display:flex;gap:1.5rem;margin-top:1rem;flex-wrap:wrap}
+  .meta-item{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}
+  .meta-item span{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text);font-weight:500}
+
+  nav{background:var(--bg1);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;gap:0;overflow-x:auto;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  .tab{padding:.75rem 1.1rem;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;letter-spacing:.2px}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--blue);border-color:var(--blue)}
+
+  .content{max-width:900px;margin:0 auto;padding:2rem}
+  .section{display:none}
+  .section.active{display:block}
+
+  h2{font-size:1.25rem;font-weight:600;color:var(--text);margin:1.8rem 0 .8rem;display:flex;align-items:center;gap:.5rem}
+  h2::before{content:'';display:inline-block;width:3px;height:1.1em;background:var(--blue);border-radius:2px}
+  h3{font-size:1rem;font-weight:600;color:var(--blue);margin:1.2rem 0 .5rem}
+  p{color:#c9d1d9;margin-bottom:.8rem}
+
+  .card{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin:.75rem 0}
+  .card-green{border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.05)}
+  .card-blue{border-color:rgba(88,166,255,.3);background:rgba(88,166,255,.05)}
+  .card-amber{border-color:rgba(210,153,34,.3);background:rgba(210,153,34,.05)}
+  .card-purple{border-color:rgba(188,140,255,.3);background:rgba(188,140,255,.05)}
+  .card-red{border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.05)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin:1rem 0}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin:1rem 0}
+
+  .ref-tag{display:inline-block;background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.25);border-radius:4px;padding:1px 6px;font-size:.75rem;font-weight:600;margin-left:3px;cursor:default}
+
+  .stage-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center;position:relative;overflow:hidden}
+  .stage-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .stage-card.s1::before{background:var(--muted)}
+  .stage-card.s2::before{background:var(--green)}
+  .stage-card.s3::before{background:var(--amber)}
+  .stage-card.s4::before{background:var(--red)}
+  .stage-num{font-size:1.4rem;font-weight:700;margin-bottom:.2rem}
+  .stage-name{font-size:.85rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .stage-bbch{font-size:.75rem;color:var(--muted);margin:.3rem 0}
+  .stage-lpf{font-size:.8rem;font-weight:600;padding:3px 8px;border-radius:12px;display:inline-block;margin-top:.4rem}
+  .lpf-low{background:rgba(139,148,158,.15);color:var(--muted)}
+  .lpf-mid{background:rgba(63,185,80,.12);color:var(--green)}
+  .lpf-high{background:rgba(210,153,34,.12);color:var(--amber)}
+  .lpf-drop{background:rgba(248,81,73,.12);color:var(--red)}
+
+  .pipeline{display:flex;flex-direction:column;gap:0}
+  .pipe-step{display:flex;gap:1rem;align-items:flex-start;position:relative;padding-bottom:1rem}
+  .pipe-step::after{content:'';position:absolute;left:18px;top:40px;bottom:0;width:2px;background:var(--border)}
+  .pipe-step:last-child::after{display:none}
+  .step-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0;z-index:1;position:relative}
+  .step-blue{background:rgba(88,166,255,.15);border:2px solid rgba(88,166,255,.4);color:var(--blue)}
+  .step-green{background:rgba(63,185,80,.15);border:2px solid rgba(63,185,80,.4);color:var(--green)}
+  .step-amber{background:rgba(210,153,34,.15);border:2px solid rgba(210,153,34,.4);color:var(--amber)}
+  .step-purple{background:rgba(188,140,255,.15);border:2px solid rgba(188,140,255,.4);color:var(--purple)}
+  .step-body{flex:1;padding-top:.4rem}
+  .step-title{font-weight:600;font-size:.9rem;margin-bottom:.2rem}
+  .step-desc{font-size:.82rem;color:var(--muted);line-height:1.5}
+
+  .arch-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.8rem;text-align:center;font-size:.82rem}
+  .arch-box.branch-a{border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.06)}
+  .arch-box.branch-b{border-color:rgba(88,166,255,.4);background:rgba(88,166,255,.06)}
+  .arch-box.fusion{border-color:rgba(188,140,255,.4);background:rgba(188,140,255,.06)}
+  .arch-box.output{border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.06)}
+  .arch-arrow{text-align:center;color:var(--muted);font-size:1.2rem;margin:.2rem 0}
+  .branch-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.3rem;opacity:.7}
+
+  .formula{background:var(--bg0);border:1px solid var(--border);border-radius:6px;padding:.8rem 1rem;font-family:'Courier New',monospace;font-size:.85rem;color:#79c0ff;margin:.6rem 0;line-height:1.6}
+
+  .highlight-box{border-left:3px solid var(--blue);padding:.7rem 1rem;background:rgba(88,166,255,.05);border-radius:0 6px 6px 0;margin:.8rem 0}
+  .highlight-box.green{border-color:var(--green);background:rgba(63,185,80,.05)}
+  .highlight-box.amber{border-color:var(--amber);background:rgba(210,153,34,.05)}
+  .highlight-box.red{border-color:var(--red);background:rgba(248,81,73,.05)}
+
+  table{width:100%;border-collapse:collapse;font-size:.82rem;margin:.8rem 0}
+  th{background:var(--bg2);padding:.6rem .8rem;text-align:left;font-weight:600;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)}
+  td{padding:.6rem .8rem;border-bottom:1px solid rgba(48,54,61,.6);color:#c9d1d9;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(88,166,255,.04)}
+
+  .tag{display:inline-block;border-radius:4px;padding:2px 7px;font-size:.75rem;font-weight:600;margin:2px}
+  .tag-green{background:rgba(63,185,80,.12);color:var(--green)}
+  .tag-blue{background:rgba(88,166,255,.12);color:var(--blue)}
+  .tag-amber{background:rgba(210,153,34,.12);color:var(--amber)}
+  .tag-red{background:rgba(248,81,73,.12);color:var(--red)}
+  .tag-purple{background:rgba(188,140,255,.12);color:var(--purple)}
+
+  .viva-q{background:var(--bg1);border:1px solid var(--border);border-radius:8px;margin:.6rem 0;overflow:hidden}
+  .viva-q-head{padding:.8rem 1rem;font-weight:600;font-size:.85rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .2s}
+  .viva-q-head:hover{background:var(--bg2)}
+  .viva-q-body{padding:0 1rem 1rem;font-size:.82rem;color:#c9d1d9;display:none;line-height:1.6}
+  .viva-q-body.open{display:block}
+  .viva-q-head .chevron{transition:transform .2s;color:var(--muted);font-size:.75rem}
+  .viva-q-head.open .chevron{transform:rotate(180deg)}
+
+  .ref-item{display:flex;gap:.8rem;padding:.6rem 0;border-bottom:1px solid rgba(48,54,61,.5);font-size:.8rem}
+  .ref-item:last-child{border-bottom:none}
+  .ref-num{color:var(--blue);font-weight:700;min-width:24px;padding-top:.05rem}
+  .ref-text{color:var(--muted);line-height:1.5}
+  .ref-text strong{color:#c9d1d9}
+
+  .progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:.3rem 0}
+  .progress-fill{height:100%;border-radius:3px;transition:width .3s}
+
+  .lpf-vis{display:flex;align-items:center;gap:.8rem;margin:.3rem 0}
+  .lpf-bar{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+  .lpf-fill{height:100%;background:linear-gradient(90deg,#3fb950,#d29922);border-radius:4px}
+
+  .key-point{display:flex;gap:.6rem;align-items:flex-start;margin:.4rem 0;font-size:.85rem}
+  .key-point::before{content:'▸';color:var(--blue);flex-shrink:0;margin-top:.1rem}
+
+  .warn-box{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.3);border-radius:8px;padding:.8rem 1rem;font-size:.82rem;color:#c9d1d9;margin:.8rem 0}
+  .warn-box strong{color:var(--amber)}
+
+  @media(max-width:600px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Research Presentation Prep — 2022E027 &amp; 2022E059</div>
+  <h1>Leaf Density-Based Growth Stage Detection in Tomato Plants Using Deep Learning</h1>
+  <p>Department of Computer Engineering · University of Jaffna · Supervisor: Dr. P. Jeyananthan</p>
+  <div class="meta-row">
+    <div class="meta-item">Architecture: <span>Dual-Branch CNN + U-Net</span></div>
+    <div class="meta-item">Dataset: <span>~1,600 Images · 4 Stages</span></div>
+    <div class="meta-item">Framework: <span>TensorFlow / Keras</span></div>
+    <div class="meta-item">Input Size: <span>224×224×3</span></div>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" onclick="showTab('overview')">Overview</div>
+  <div class="tab" onclick="showTab('dataset')">Dataset</div>
+  <div class="tab" onclick="showTab('architecture')">Architecture</div>
+  <div class="tab" onclick="showTab('branch1')">Branch 01 · U-Net</div>
+  <div class="tab" onclick="showTab('branch2')">Branch 02 · CNN</div>
+  <div class="tab" onclick="showTab('fusion')">Fusion &amp; Training</div>
+  <div class="tab" onclick="showTab('evaluation')">Evaluation</div>
+  <div class="tab" onclick="showTab('viva')">Viva Q&amp;A</div>
+  <div class="tab" onclick="showTab('refs')">References</div>
+</nav>
+
+<!-- ======= OVERVIEW ======= -->
+<div class="content">
+<div class="section active" id="sec-overview">
+  <h2>Research at a Glance</h2>
+  <div class="card card-blue">
+    <p style="font-size:.95rem;color:var(--text);font-weight:500">Develop a dual-branch deep learning system that classifies tomato plant growth stages by using <em>leaf density</em> as the primary biological indicator — combining U-Net segmentation (Branch 01) with CNN-based classification (Branch 02) into a fused prediction model.</p>
+  </div>
+
+  <h2>Why This Research?</h2>
+  <div class="grid2">
+    <div class="card card-red">
+      <h3 style="color:var(--red)">Research Gap <span class="ref-tag">[3][5]</span></h3>
+      <p style="font-size:.83rem">Existing deep learning work on tomatoes focuses on <strong>fruit detection</strong> and <strong>disease identification</strong>, NOT whole-plant growth stage classification. No study explicitly uses leaf density as a primary biological indicator for tomato stage detection.</p>
+    </div>
+    <div class="card card-green">
+      <h3 style="color:var(--green)">Our Contribution</h3>
+      <p style="font-size:.83rem">First dual-branch architecture that fuses <strong>pixel-level leaf segmentation (LPF)</strong> from U-Net with <strong>deep visual features</strong> from CNN to classify all four tomato BBCH growth stages.</p>
+    </div>
+  </div>
+
+  <h2>Limitations of Existing Approaches <span class="ref-tag">[3][4][11]</span></h2>
+  <table>
+    <thead><tr><th>Approach</th><th>What it Misses</th><th>Studies</th></tr></thead>
+    <tbody>
+      <tr><td>Manual inspection</td><td>Labor-intensive, subjective, not scalable for large greenhouse operations</td><td>[1][2]</td></tr>
+      <tr><td>Classical ML (SVM, HOG)</td><td>High intra-class similarity, no generalisation, manual feature engineering</td><td>[11]</td></tr>
+      <tr><td>CNN alone</td><td>Cannot explicitly measure leaf density — a key biological feature</td><td>[3][4]</td></tr>
+      <tr><td>U-Net / LPF alone</td><td>Loses rich visual texture, shape, and colour information</td><td>[14]</td></tr>
+      <tr><td><strong>Our Dual-Branch Fusion</strong></td><td style="color:var(--green)"><strong>Gets both: structural density + visual features</strong></td><td>[proposal]</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Biological Justification <span class="ref-tag">[2][6]</span></h2>
+  <div class="highlight-box green">
+    <p style="font-size:.85rem;margin:0">Leaf Area Index (LAI) and leaf count increase <strong>systematically</strong> across tomato growth stages [6]. This means leaf density (measured as Leaf Pixel Fraction — LPF) is a reliable, quantitative biological signal for stage discrimination — not just a visual feature, but a structural one backed by agronomy literature [2].</p>
+  </div>
+
+  <h2>End-to-End Methodology Pipeline</h2>
+  <div class="grid3">
+    <div class="arch-box"><div class="branch-label">Step 1</div><strong>Data Collection</strong><br><small style="color:var(--muted)">~1,600 RGB images, Xiaomi 12 Pro, Anuradhapura greenhouse</small></div>
+    <div class="arch-box"><div class="branch-label">Step 2</div><strong>Annotation</strong><br><small style="color:var(--muted)">Roboflow Smart Polygon → COCO JSON</small></div>
+    <div class="arch-box"><div class="branch-label">Step 3</div><strong>Preprocessing</strong><br><small style="color:var(--muted)">Resize 224×224, normalize, augment</small></div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="grid2">
+    <div class="arch-box branch-a"><div class="branch-label">Branch 01</div><strong>U-Net Segmentation</strong><br><small>Leaf mask → Leaf Pixel Fraction (LPF)</small></div>
+    <div class="arch-box branch-b"><div class="branch-label">Branch 02</div><strong>CNN Classification</strong><br><small>Deep feature vector (2048-dim)</small></div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-box fusion"><strong>Feature Fusion Layer</strong><br><small>Concatenate LPF scalar + CNN vector → 2049-dim combined vector</small></div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-box output"><strong>Fully Connected + SoftMax</strong><br><small>4-class output: Seedling · Vegetative · Flowering · Fruiting</small></div>
+</div>
+
+<!-- ======= DATASET ======= -->
+<div class="section" id="sec-dataset">
+  <h2>Dataset Overview <span class="ref-tag">[proposal]</span></h2>
+  <div class="card card-blue">
+    <div class="grid3">
+      <div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:var(--blue)">1,600</div><div style="font-size:.8rem;color:var(--muted)">Total RGB Images</div></div>
+      <div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:var(--green)">165</div><div style="font-size:.8rem;color:var(--muted)">Tomato Plants</div></div>
+      <div style="text-align:center"><div style="font-size:2rem;font-weight:700;color:var(--amber)">4</div><div style="font-size:.8rem;color:var(--muted)">Growth Stage Classes</div></div>
+    </div>
+  </div>
+
+  <h2>Four Growth Stages — BBCH Scale <span class="ref-tag">[7]</span></h2>
+  <div class="grid4">
+    <div class="stage-card s1">
+      <div class="stage-num" style="color:var(--muted)">1</div>
+      <div class="stage-name">Seedling</div>
+      <div class="stage-bbch">BBCH 00–13</div>
+      <div style="font-size:.75rem;color:var(--muted);margin:.4rem 0">Cotyledons visible, 1–3 true leaves unfolded, very sparse canopy</div>
+      <div class="stage-lpf lpf-low">LPF ≈ 0.05–0.15</div>
+      <div class="lpf-vis" style="margin-top:.5rem"><div class="lpf-bar"><div class="lpf-fill" style="width:10%"></div></div></div>
+      <div style="font-size:.72rem;color:var(--muted)">~400 images</div>
+    </div>
+    <div class="stage-card s2">
+      <div class="stage-num" style="color:var(--green)">2</div>
+      <div class="stage-name">Vegetative</div>
+      <div class="stage-bbch">BBCH 15–19</div>
+      <div style="font-size:.75rem;color:var(--muted);margin:.4rem 0">5–9+ true leaves, canopy actively building, leaves overlapping</div>
+      <div class="stage-lpf lpf-mid">LPF ≈ 0.25–0.45</div>
+      <div class="lpf-vis" style="margin-top:.5rem"><div class="lpf-bar"><div class="lpf-fill" style="width:35%"></div></div></div>
+      <div style="font-size:.72rem;color:var(--muted)">~400 images</div>
+    </div>
+    <div class="stage-card s3">
+      <div class="stage-num" style="color:var(--amber)">3</div>
+      <div class="stage-name">Flowering</div>
+      <div class="stage-bbch">BBCH 60–69</div>
+      <div style="font-size:.75rem;color:var(--muted);margin:.4rem 0">Full canopy established, leaf density reaches near-maximum</div>
+      <div class="stage-lpf lpf-high">LPF ≈ 0.55–0.75</div>
+      <div class="lpf-vis" style="margin-top:.5rem"><div class="lpf-bar"><div class="lpf-fill" style="width:65%"></div></div></div>
+      <div style="font-size:.72rem;color:var(--muted)">~400 images</div>
+    </div>
+    <div class="stage-card s4">
+      <div class="stage-num" style="color:var(--red)">4</div>
+      <div class="stage-name">Fruiting</div>
+      <div class="stage-bbch">BBCH 70–79</div>
+      <div style="font-size:.75rem;color:var(--muted);margin:.4rem 0">Leaf density stabilises or slightly declines, lower leaves senesce</div>
+      <div class="stage-lpf lpf-drop">LPF ≈ 0.45–0.60</div>
+      <div class="lpf-vis" style="margin-top:.5rem"><div class="lpf-bar"><div class="lpf-fill" style="width:52%"></div></div></div>
+      <div style="font-size:.72rem;color:var(--muted)">~400 images</div>
+    </div>
+  </div>
+
+  <h2>Data Collection Setup</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Capture Details</h3>
+      <p style="font-size:.83rem"><strong>Camera:</strong> Xiaomi 12 Pro smartphone<br>
+      <strong>Angles:</strong> Front view + side view per plant<br>
+      <strong>Lighting:</strong> Natural greenhouse lighting (no flash)<br>
+      <strong>Location:</strong> Commercial greenhouse, Anuradhapura, Sri Lanka<br>
+      <strong>Total plants:</strong> 165 tomato plants monitored</p>
+    </div>
+    <div class="card">
+      <h3>Nutrient Protocol</h3>
+      <p style="font-size:.83rem"><strong>Albert Solution</strong> — balanced base nutrients for vegetative development<br>
+      <strong>K44</strong> — potassium-rich supplement for flowering &amp; fruiting<br>
+      <strong>Calcinate (Ca Nitrate)</strong> — cell wall strength &amp; structural integrity<br>
+      <strong>Irrigation:</strong> Daily at 10:00 AM via drip irrigation</p>
+    </div>
+  </div>
+
+  <h2>Dataset Split <span class="ref-tag">[14]</span></h2>
+  <div class="grid3">
+    <div class="card card-green"><h3>70% — Training</h3><p style="font-size:.83rem">~1,120 images used to train both branches simultaneously. Augmentation applied here.</p></div>
+    <div class="card card-blue"><h3>20% — Validation</h3><p style="font-size:.83rem">~320 images for hyperparameter tuning and monitoring overfitting during training.</p></div>
+    <div class="card card-amber"><h3>10% — Testing</h3><p style="font-size:.83rem">~160 images held out for final unbiased performance evaluation after training.</p></div>
+  </div>
+
+  <h2>Data Augmentation <span class="ref-tag">[11][13]</span></h2>
+  <div class="highlight-box">
+    <p style="font-size:.83rem;margin:0">Applied to training set only: <span class="tag tag-green">Random horizontal flip</span> <span class="tag tag-green">Rotation</span> <span class="tag tag-green">Brightness adjustment</span> <span class="tag tag-green">Contrast adjustment</span> <span class="tag tag-green">Gaussian blur</span><br><br>Purpose: Improve robustness against greenhouse lighting variation and plant positioning differences. Effectively triples usable training samples.</p>
+  </div>
+
+  <h2>Key Dataset Constraints</h2>
+  <div class="warn-box">
+    <strong>Limitations to acknowledge in presentation:</strong><br>
+    Consumer smartphone camera (not research-grade) · Limited to ~1,600 images due to academic time constraints · Single greenhouse location (Anuradhapura) · Manual leaf annotation may introduce minor labelling inconsistencies
+  </div>
+</div>
+
+<!-- ======= ARCHITECTURE ======= -->
+<div class="section" id="sec-architecture">
+  <h2>Overall Dual-Branch Architecture <span class="ref-tag">[proposal]</span></h2>
+  <div class="highlight-box green">
+    <p style="font-size:.85rem;margin:0"><strong>Core Idea:</strong> The same preprocessed tomato image (224×224×3) is fed simultaneously into two independent branches. Neither branch predicts the stage alone — they each extract a different type of information that is later <em>fused</em> to make the final prediction.</p>
+  </div>
+
+  <h2>Architecture Flow — Step by Step</h2>
+
+  <div style="background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:1.5rem;margin:1rem 0">
+    <div class="arch-box" style="max-width:320px;margin:0 auto .8rem">
+      <strong>INPUT: Tomato RGB Image</strong><br>
+      <small style="color:var(--muted)">224 × 224 × 3 (after preprocessing)</small>
+    </div>
+    <div class="arch-arrow">↓ same image fed to both branches</div>
+
+    <div class="grid2" style="margin:.5rem 0">
+      <div>
+        <div class="arch-box branch-a">
+          <div class="branch-label">Branch 01 — Segmentation</div>
+          <strong>U-Net</strong><br>
+          <small>Encoder → Bottleneck → Decoder</small><br>
+          <small style="color:var(--muted)">Output: Binary Leaf Mask (224×224×1)</small>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-box branch-a">
+          <strong>Compute LPF</strong><br>
+          <small style="font-family:monospace">LPF = leaf_pixels / total_pixels</small><br>
+          <small style="color:var(--green)">→ 1 scalar value (0.0 – 1.0)</small>
+        </div>
+      </div>
+      <div>
+        <div class="arch-box branch-b">
+          <div class="branch-label">Branch 02 — Classification</div>
+          <strong>Pre-trained CNN</strong><br>
+          <small>ResNet50 / VGG16 / MobileNet etc.</small><br>
+          <small style="color:var(--muted)">Fine-tuned with ImageNet weights</small>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-box branch-b">
+          <strong>Deep Feature Vector</strong><br>
+          <small style="font-family:monospace">[0.23, 0.87, 0.04 ... ] (2048-dim)</small><br>
+          <small style="color:var(--blue)">→ 2048 learned visual features</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↓ concatenate</div>
+    <div class="arch-box fusion" style="max-width:500px;margin:0 auto .8rem">
+      <strong>Feature Fusion</strong><br>
+      <small>[CNN features (2048) + LPF (1)] = Combined vector (2049)</small>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-box fusion" style="max-width:400px;margin:0 auto .8rem">
+      <strong>Fully Connected Layer</strong><br>
+      <small>Learns how to weight both structural + visual features</small>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-box fusion" style="max-width:350px;margin:0 auto .8rem">
+      <strong>SoftMax Activation</strong><br>
+      <small>4 class probabilities → sum = 1.0</small>
+    </div>
+    <div class="arch-arrow">↓</div>
+    <div class="arch-box output" style="max-width:500px;margin:0 auto">
+      <strong>Final Prediction</strong><br>
+      <small>Highest probability class = Seedling / Vegetative / Flowering / Fruiting</small>
+    </div>
+  </div>
+
+  <h2>Why This Fusion Is Better Than Either Branch Alone</h2>
+  <table>
+    <thead><tr><th>Approach</th><th>What it captures</th><th>What it misses</th></tr></thead>
+    <tbody>
+      <tr><td>CNN only</td><td>Rich visual texture, colour, shape patterns</td><td>Cannot explicitly measure leaf density</td></tr>
+      <tr><td>U-Net / LPF only</td><td>Quantitative leaf density (structural)</td><td>Loses all visual texture and shape info</td></tr>
+      <tr><td><strong style="color:var(--green)">Dual-branch fusion</strong></td><td style="color:var(--green)"><strong>Both: structural density AND visual features</strong></td><td>Slightly more complex to train</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Model Training Setup</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>Hyperparameters</h3>
+      <p style="font-size:.83rem"><strong>Optimizer:</strong> Adam <span class="ref-tag">[4]</span><br>
+      <strong>Learning rate:</strong> 0.001 (initial)<br>
+      <strong>Framework:</strong> TensorFlow / Keras<br>
+      <strong>Hardware:</strong> Google Colab (GPU)</p>
+    </div>
+    <div class="card">
+      <h3>Loss Functions</h3>
+      <p style="font-size:.83rem"><strong>U-Net branch:</strong> Binary Cross-Entropy (BCE) — compares predicted mask vs true mask<br>
+      <strong>Classification:</strong> Categorical Cross-Entropy — compares predicted stage vs true label<br>Both losses backpropagate through their own branches simultaneously.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ======= BRANCH 1 ======= -->
+<div class="section" id="sec-branch1">
+  <h2>Branch 01 — Segmentation Branch (U-Net)</h2>
+  <div class="highlight-box green">
+    <p style="font-size:.85rem;margin:0"><strong>Role:</strong> Take a tomato RGB image → identify leaf pixels → compute Leaf Pixel Fraction (LPF). LPF is passed to the fusion layer as a quantitative biological density measure.</p>
+  </div>
+
+  <h2>Complete Branch 01 Pipeline — 12 Steps</h2>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="step-icon step-blue">1</div>
+      <div class="step-body">
+        <div class="step-title">Original Tomato RGB Image</div>
+        <div class="step-desc">Original unmodified greenhouse photo (Xiaomi 12 Pro). Format: RGB, 3 channels. <strong>No annotation lines drawn on the actual image pixels.</strong> Captured at original full resolution.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-blue">2</div>
+      <div class="step-body">
+        <div class="step-title">Annotate Leaf Regions in Roboflow <span class="ref-tag">[4 (Roboflow)]</span></div>
+        <div class="step-desc">Open the original image in Roboflow, draw polygon outlines around all visible leaf regions using the <strong>Smart Polygon</strong> tool (semi-automated edge detection). The drawn polygon lines are saved separately as coordinate data — they do NOT modify the image pixels.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-blue">3</div>
+      <div class="step-body">
+        <div class="step-title">Export as COCO JSON</div>
+        <div class="step-desc">Annotations exported in COCO JSON format — a JSON file (not an image) storing: image_id, file_name, segmentation coordinates [x1,y1, x2,y2...], category_id ("leaf"), area, and bounding box. <strong>CRITICAL RULE: COCO JSON is NEVER fed as an image into U-Net. It is only used to generate binary masks.</strong></div>
+        <div class="formula">{"annotations": [{"image_id": 1, "category_id": 1, "segmentation": [[50,30,80,20,110,40,90,70,60,65]]}]}</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-green">4</div>
+      <div class="step-body">
+        <div class="step-title">Convert COCO Polygons → Binary Mask</div>
+        <div class="step-desc">Read JSON, create blank array same size as original image, fill polygon regions with value 1 (leaf = white), rest stays 0 (background = black). Result: binary mask where every pixel position (x,y) aligns exactly with the original image. Binary because only 2 classes: leaf and background.</div>
+        <div class="formula">Mask pixel: 1 = leaf (white),  0 = background (black)</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-green">5</div>
+      <div class="step-body">
+        <div class="step-title">Resize Both to 224×224 Together <span class="ref-tag">[proposal]</span></div>
+        <div class="step-desc">
+          <table style="margin:.4rem 0">
+            <thead><tr><th>What</th><th>Target Size</th><th>Method</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>Original RGB image</td><td>224×224×3</td><td>Bilinear interpolation</td><td>Smooth, suitable for colour images</td></tr>
+              <tr><td>Binary mask</td><td>224×224×1</td><td><strong>Nearest-neighbor</strong></td><td>Preserves 0/1 values — no fractional values created</td></tr>
+            </tbody>
+          </table>
+          <strong>Critical rule:</strong> Always resize both together with the same spatial transform. If augmentation is applied, apply the exact same operation to both.
+        </div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-green">6</div>
+      <div class="step-body">
+        <div class="step-title">Create Training Pair (Locked Pair)</div>
+        <div class="step-desc">For every training sample, U-Net receives one fixed locked pair:<br>
+        <strong>INPUT:</strong> tomato_001.jpg (224×224×3) — goes INTO U-Net<br>
+        <strong>TARGET:</strong> tomato_001_mask.png (224×224×1) — what U-Net should OUTPUT<br>
+        Every pixel at (x,y) in the image must align with the label at (x,y) in the mask.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-amber">7</div>
+      <div class="step-body">
+        <div class="step-title">U-Net Architecture — Internal Pipeline <span class="ref-tag">[14][Geeks]</span></div>
+        <div class="step-desc">
+          <table style="margin:.4rem 0">
+            <thead><tr><th>Part</th><th>Spatial Size</th><th>Channels</th><th>Function</th></tr></thead>
+            <tbody>
+              <tr><td>Encoder L1</td><td>224→112</td><td>64</td><td>Basic edges, colours, textures</td></tr>
+              <tr><td>Encoder L2</td><td>112→56</td><td>128</td><td>Leaf shapes, patterns</td></tr>
+              <tr><td>Encoder L3</td><td>56→28</td><td>256</td><td>Leaf vs background distinctions</td></tr>
+              <tr><td>Encoder L4</td><td>28→14</td><td>512</td><td>High-level structural features</td></tr>
+              <tr><td><strong>Bottleneck</strong></td><td>14×14</td><td>1024</td><td>Most compressed; knows "what" not "where"</td></tr>
+              <tr><td>Decoder L4</td><td>14→28</td><td>—</td><td>Upsample + merge skip features</td></tr>
+              <tr><td>Decoder L3</td><td>28→56</td><td>—</td><td>Refine leaf region boundaries</td></tr>
+              <tr><td>Decoder L2</td><td>56→112</td><td>—</td><td>Recover fine leaf shapes</td></tr>
+              <tr><td>Decoder L1</td><td>112→224</td><td>—</td><td>Full resolution reconstruction</td></tr>
+            </tbody>
+          </table>
+          <div class="highlight-box" style="margin:.5rem 0">
+            <p style="font-size:.82rem;margin:0"><strong>Skip Connections (most important feature of U-Net):</strong> Direct connections from each encoder level to the corresponding decoder level. They carry fine spatial details (exact leaf boundaries, small leaf shapes) that are lost during downsampling. Without skip connections, the output mask would have blurry, inaccurate leaf boundaries → less accurate LPF.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-amber">8</div>
+      <div class="step-body">
+        <div class="step-title">Output: Predicted Binary Leaf Mask</div>
+        <div class="step-desc">1×1 convolution + sigmoid activation: each pixel gets a value 0–1. Threshold at 0.5:<br>
+        <strong>pixel &gt; 0.5 → leaf (1, white)</strong> | <strong>pixel ≤ 0.5 → background (0, black)</strong><br>
+        At test time, only the image goes in — the model predicts the mask automatically for any unseen image.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-amber">9</div>
+      <div class="step-body">
+        <div class="step-title">Loss Computation and Training Update</div>
+        <div class="step-desc">
+          <strong>Binary Cross-Entropy (BCE) loss:</strong>
+          <div class="formula">BCE = -1/N × Σ [y·log(ŷ) + (1-y)·log(1-ŷ)]<br>where: y = true mask pixel, ŷ = U-Net predicted probability, N = total pixels</div>
+          Loss backpropagated through all encoder, decoder, and bottleneck weights via Adam optimizer (lr=0.001). Repeats over many epochs.
+        </div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-purple">10</div>
+      <div class="step-body">
+        <div class="step-title">Compute Leaf Pixel Fraction (LPF)</div>
+        <div class="step-desc">
+          <div class="formula">LPF = leaf_pixels / total_pixels = count_of_1s / (224 × 224)</div>
+          Biological meaning across stages:
+          <table style="margin:.4rem 0">
+            <thead><tr><th>Stage</th><th>Expected LPF</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>Seedling</td><td>~0.05–0.15</td><td>Very few leaves, sparse coverage</td></tr>
+              <tr><td>Vegetative</td><td>~0.25–0.45</td><td>Leaves growing, canopy forming</td></tr>
+              <tr><td>Flowering</td><td>~0.55–0.75</td><td>Full canopy, maximum leaf density</td></tr>
+              <tr><td>Fruiting</td><td>~0.45–0.60</td><td>Lower leaves begin senescence</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-purple">11</div>
+      <div class="step-body">
+        <div class="step-title">Feature Fusion (passed to fusion layer)</div>
+        <div class="step-desc">LPF (scalar value) is concatenated with CNN feature vector from Branch 02 to form a 2049-dimensional combined vector.</div>
+      </div>
+    </div>
+    <div class="pipe-step" style="padding-bottom:0">
+      <div class="step-icon step-purple">12</div>
+      <div class="step-body">
+        <div class="step-title">Final Growth Stage Prediction</div>
+        <div class="step-desc">SoftMax outputs 4 probabilities → highest probability = final predicted BBCH growth stage.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>The One Rule You Must Never Forget</h2>
+  <div class="card card-red">
+    <p style="font-size:.9rem;margin:0">
+      <strong style="color:var(--red)">COCO JSON is never the input to U-Net.</strong><br>
+      It is only used to create the binary mask ground truth.<br>
+      <strong>The original image is always the input.</strong><br>
+      <strong>The binary mask is always the target output.</strong><br>
+      They must always be the same spatial size and the same matching pair.
+    </p>
+  </div>
+</div>
+
+<!-- ======= BRANCH 2 ======= -->
+<div class="section" id="sec-branch2">
+  <h2>Branch 02 — CNN Classification Branch</h2>
+  <div class="highlight-box">
+    <p style="font-size:.85rem;margin:0"><strong>Role:</strong> Process the same 224×224×3 tomato image through a pre-trained CNN, extract a high-dimensional deep feature vector that captures visual patterns (leaf colour, texture, canopy structure), and pass it to the fusion layer.</p>
+  </div>
+
+  <h2>What the CNN Learns <span class="ref-tag">[4][11]</span></h2>
+  <div class="grid2">
+    <div class="card card-blue">
+      <h3>Low-Level Features (Early Layers)</h3>
+      <p style="font-size:.83rem">Basic edges, colour boundaries, simple textures. Detects where leaves start and background ends.</p>
+    </div>
+    <div class="card card-blue">
+      <h3>High-Level Features (Deep Layers)</h3>
+      <p style="font-size:.83rem">Canopy texture, leaf colour patterns, structural shape relationships. Discriminates between visually similar stages like Vegetative vs Flowering.</p>
+    </div>
+  </div>
+
+  <h2>Transfer Learning Strategy <span class="ref-tag">[4][11]</span></h2>
+  <div class="highlight-box">
+    <p style="font-size:.85rem;margin:0"><strong>Why transfer learning?</strong> The dataset has only ~1,600 images — too small to train a deep CNN from scratch without overfitting. Pre-training on ImageNet (1.2M natural images) provides a strong starting point. Fine-tuning updates the weights to specialise for tomato leaf patterns. All images normalised using ImageNet channel mean and standard deviation.</p>
+  </div>
+
+  <h2>CNN Architectures Being Compared <span class="ref-tag">[4][11]</span></h2>
+  <table>
+    <thead><tr><th>Architecture</th><th>Feature Dim.</th><th>Strengths</th></tr></thead>
+    <tbody>
+      <tr><td>ResNet50</td><td>2048</td><td>Residual connections prevent vanishing gradients; strong for fine-grained visual differences</td></tr>
+      <tr><td>VGG16</td><td>4096</td><td>Simple uniform architecture; strong baseline for plant classification</td></tr>
+      <tr><td>MobileNet</td><td>1280</td><td>Lightweight; good for deployment on edge devices in greenhouses</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:.83rem;color:var(--muted)">One objective of the research is to compare these architectures and select the best-performing one.</p>
+
+  <h2>CNN Feature Vector Output</h2>
+  <div class="card">
+    <p style="font-size:.85rem">After the final pooling/flatten layer, the CNN produces a deep feature vector. Example with ResNet50:</p>
+    <div class="formula">Feature vector = [0.23, 0.87, 0.04, 0.65, 0.12, ...] ← 2048 numbers<br><br>Each number represents something the CNN learned about the image:<br>— leaf colour patterns, canopy texture, shape complexity, density gradients, etc.</div>
+    <p style="font-size:.83rem;margin-top:.5rem;color:var(--muted)">The CNN does NOT need polygon annotations or masks. It only needs: the image + class label (Seedling/Vegetative/Flowering/Fruiting).</p>
+  </div>
+
+  <h2>Image Preprocessing for CNN <span class="ref-tag">[proposal]</span></h2>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="step-icon step-blue">1</div>
+      <div class="step-body">
+        <div class="step-title">Capture Original Full-Resolution Image</div>
+        <div class="step-desc">Annotate leaf polygons on original image using Roboflow (for U-Net branch only). CNN branch does not need the annotations — it only needs the image and class label.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-green">2</div>
+      <div class="step-body">
+        <div class="step-title">Resize to 224×224 (Bilinear Interpolation)</div>
+        <div class="step-desc">Neural networks require uniform input dimensions. Resize using bilinear interpolation. Apply consistently to ALL images across the dataset. If images are from the same phone with similar framing, simple resize to 224×224 is acceptable.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-green">3</div>
+      <div class="step-body">
+        <div class="step-title">Normalize Using ImageNet Statistics <span class="ref-tag">[4][11]</span></div>
+        <div class="step-desc">
+          <div class="formula">mean = [0.485, 0.456, 0.406] (R, G, B)<br>std  = [0.229, 0.224, 0.225] (R, G, B)</div>
+          Ensures effective transfer learning — the model expects inputs in the same scale as ImageNet.
+        </div>
+      </div>
+    </div>
+    <div class="pipe-step" style="padding-bottom:0">
+      <div class="step-icon step-amber">4</div>
+      <div class="step-body">
+        <div class="step-title">Data Augmentation (Training Only) <span class="ref-tag">[11][13]</span></div>
+        <div class="step-desc">Random horizontal flip, rotation, brightness/contrast adjustment, Gaussian blur. For CNN branch: augment only the image (no mask needed). This robustifies against lighting variation and plant positioning in the greenhouse.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Why Annotate at Original Resolution? <span class="ref-tag">[Roboflow]</span></h2>
+  <div class="card card-green">
+    <p style="font-size:.85rem;margin:0"><strong>Best practice answer for examiner:</strong> "We annotated the originally captured full-resolution images because higher-resolution images provide better leaf boundary detail during polygon annotation. After exporting annotations in COCO JSON format, we resized the images and their corresponding masks consistently to 224×224 during preprocessing. This preserves annotation quality while ensuring compatibility with both the CNN and U-Net input size requirements."</p>
+  </div>
+</div>
+
+<!-- ======= FUSION ======= -->
+<div class="section" id="sec-fusion">
+  <h2>Feature Fusion — How Both Branches Unite</h2>
+
+  <h3>Step-by-Step Fusion Process</h3>
+  <div class="card">
+    <div class="formula">
+Branch 01 (U-Net):  Image → Binary Mask → LPF = 0.65  (1 scalar)<br>
+Branch 02 (CNN):    Image → Feature vector = [0.23, 0.87, ...] (2048 numbers)<br><br>
+Feature Fusion:     Concatenate → [2048 CNN features | 0.65 LPF] = 2049-dim vector<br><br>
+FC Layer:           2049 → 256 (learns weights for both sources)<br><br>
+SoftMax:            256 → 4 probabilities (sum = 1.0)<br><br>
+Prediction:         argmax(probabilities) → final growth stage
+    </div>
+  </div>
+
+  <h2>SoftMax Output Example</h2>
+  <div class="card card-purple">
+    <p style="font-size:.83rem;margin-bottom:.5rem">Example SoftMax output for a Flowering-stage image:</p>
+    <div style="display:flex;flex-direction:column;gap:.4rem;font-size:.83rem">
+      <div style="display:flex;align-items:center;gap:.8rem"><span style="width:90px;color:var(--muted)">Seedling</span><div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:5%;background:var(--muted)"></div></div><span style="width:40px;text-align:right">5%</span></div>
+      <div style="display:flex;align-items:center;gap:.8rem"><span style="width:90px;color:var(--muted)">Vegetative</span><div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:8%;background:var(--green)"></div></div><span style="width:40px;text-align:right">8%</span></div>
+      <div style="display:flex;align-items:center;gap:.8rem"><span style="width:90px;color:var(--amber)"><strong>Flowering ✓</strong></span><div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:82%;background:var(--amber)"></div></div><span style="width:40px;text-align:right;color:var(--amber)"><strong>82%</strong></span></div>
+      <div style="display:flex;align-items:center;gap:.8rem"><span style="width:90px;color:var(--muted)">Fruiting</span><div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:5%;background:var(--red)"></div></div><span style="width:40px;text-align:right">5%</span></div>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:.5rem">→ Highest probability (82%) = Flowering → Predicted class</p>
+  </div>
+
+  <h2>Training Flow — How Both Branches Learn Simultaneously</h2>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="step-icon step-blue">1</div>
+      <div class="step-body">
+        <div class="step-title">Forward Pass — Both Branches</div>
+        <div class="step-desc">Same image fed into both branches. U-Net produces binary mask prediction, CNN produces feature vector. Both processed simultaneously in one forward pass.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-green">2</div>
+      <div class="step-body">
+        <div class="step-title">Loss Computation</div>
+        <div class="step-desc">
+          <strong>U-Net Loss (BCE):</strong> Compare predicted leaf mask vs. true binary mask (from COCO annotations)<br>
+          <strong>Classification Loss (Categorical Cross-Entropy):</strong> Compare predicted growth stage probabilities vs. true stage label<br>
+          <em>Two separate losses — each targets its own branch</em>
+        </div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-amber">3</div>
+      <div class="step-body">
+        <div class="step-title">Backpropagation</div>
+        <div class="step-desc">BCE loss backpropagates through U-Net (encoder, bottleneck, decoder). Classification loss backpropagates through CNN and the FC/SoftMax layers. Both update their own weights via Adam optimizer (lr=0.001). Both branches learn from the same training data at the same time.</div>
+      </div>
+    </div>
+    <div class="pipe-step">
+      <div class="step-icon step-purple">4</div>
+      <div class="step-body">
+        <div class="step-title">Epoch Iteration</div>
+        <div class="step-desc">Steps 1–3 repeat for all training samples across many epochs until: predicted masks closely match true masks AND predicted growth stage probabilities are accurate. Validation performance monitored after each epoch to detect overfitting.</div>
+      </div>
+    </div>
+    <div class="pipe-step" style="padding-bottom:0">
+      <div class="step-icon step-green">5</div>
+      <div class="step-body">
+        <div class="step-title">Inference (Test Time)</div>
+        <div class="step-desc">New unseen tomato image → same forward pass → no COCO JSON or ground truth needed → model automatically predicts: (1) leaf mask, (2) LPF, (3) CNN features, (4) final growth stage.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Fully Connected Layer — What It Learns</h2>
+  <div class="highlight-box">
+    <p style="font-size:.85rem;margin:0">The FC layer learns to combine both information sources intelligently. Examples of what it discovers during training:<br><br>
+    "When LPF is HIGH and CNN features show lots of green canopy texture → likely Flowering"<br>
+    "When LPF is LOW and CNN features show few, sparse leaves → likely Seedling"<br>
+    "When LPF is MEDIUM but CNN detects yellow/orange patterns → possibly Fruiting"</p>
+  </div>
+</div>
+
+<!-- ======= EVALUATION ======= -->
+<div class="section" id="sec-evaluation">
+  <h2>Model Evaluation Metrics <span class="ref-tag">[5][11]</span></h2>
+
+  <div class="grid2">
+    <div class="card card-blue">
+      <h3>Accuracy</h3>
+      <div class="formula">Accuracy = (TP + TN) / Total Predictions</div>
+      <p style="font-size:.83rem">Overall proportion of correctly classified images across all 4 stages. Primary metric. Comparable to [11] which achieved 97.6% for wheat with multi-scale CNN.</p>
+    </div>
+    <div class="card card-blue">
+      <h3>Per-Class Precision</h3>
+      <div class="formula">Precision = TP / (TP + FP)</div>
+      <p style="font-size:.83rem">For each stage: how often the model is correct when it predicts that stage. Important for Vegetative/Flowering boundary which is hardest to discriminate.</p>
+    </div>
+    <div class="card card-blue">
+      <h3>Per-Class Recall</h3>
+      <div class="formula">Recall = TP / (TP + FN)</div>
+      <p style="font-size:.83rem">For each stage: how many actual instances of that stage are correctly detected. Shows if any stage is being missed/underdetected.</p>
+    </div>
+    <div class="card card-blue">
+      <h3>Confusion Matrix <span class="ref-tag">[5][11]</span></h3>
+      <p style="font-size:.83rem">4×4 matrix showing all misclassifications. Particularly important for identifying Vegetative–Flowering confusion — the most visually ambiguous boundary in the dataset.</p>
+    </div>
+  </div>
+
+  <h2>U-Net Specific Metrics <span class="ref-tag">[14]</span></h2>
+  <div class="grid2">
+    <div class="card card-green">
+      <h3>IoU (Intersection over Union)</h3>
+      <div class="formula">IoU = |predicted ∩ true| / |predicted ∪ true|</div>
+      <p style="font-size:.83rem">Measures how well the predicted leaf mask overlaps with the ground truth. [14] achieved 90% mean IoU for leaf segmentation in Brassica napus — comparable target for our work.</p>
+    </div>
+    <div class="card card-green">
+      <h3>Dice Coefficient / F1</h3>
+      <div class="formula">Dice = 2|P ∩ T| / (|P| + |T|)</div>
+      <p style="font-size:.83rem">Alternative segmentation quality metric. Related to IoU. Higher Dice = better mask accuracy = more reliable LPF computation.</p>
+    </div>
+  </div>
+
+  <h2>Key Challenge: Vegetative–Flowering Boundary <span class="ref-tag">[5][11]</span></h2>
+  <div class="warn-box">
+    <strong>Why this is hard:</strong> During the Vegetative→Flowering transition, a plant simultaneously exhibits features of both stages. Leaf density (LPF) is at a mid-range value, and visual patterns are similar. This is where the dual-branch fusion is most beneficial — the FC layer can combine the LPF signal with CNN-detected flower buds or colour shifts to resolve the ambiguity.
+  </div>
+
+  <h2>Benchmark Context</h2>
+  <table>
+    <thead><tr><th>Study</th><th>Crop</th><th>Method</th><th>Accuracy</th></tr></thead>
+    <tbody>
+      <tr><td>[11] Li et al.</td><td>Wheat</td><td>Multi-scale CNN with attention (MSN-W)</td><td>97.6%</td></tr>
+      <tr><td>[4] Schieck et al.</td><td>Grapevine</td><td>CNN for BBCH stage recognition</td><td>High (exact varies)</td></tr>
+      <tr><td>[14] Li et al.</td><td>Brassica napus</td><td>U-Net with attention</td><td>mIoU 90%, area 96.77%</td></tr>
+      <tr><td><strong>Our Research</strong></td><td><strong>Tomato</strong></td><td><strong>Dual-branch CNN+U-Net fusion</strong></td><td><strong>TBD — target competitive with above</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ======= VIVA ======= -->
+<div class="section" id="sec-viva">
+  <h2>Viva / Presentation Q&amp;A — Click to Expand Answers</h2>
+
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>How do the CNN and U-Net produce the final prediction together?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"CNN and U-Net do not predict the growth stage independently. Instead, U-Net produces a binary leaf mask from which we compute Leaf Pixel Fraction as a scalar leaf-density value, while the CNN produces a high-dimensional deep feature vector from the same input image. These two outputs are concatenated in a feature fusion step, and the combined vector passes through a Fully Connected layer that learns how to weight both the visual and structural information together. A SoftMax activation then converts the output into four class probabilities — Seedling, Vegetative, Flowering, and Fruiting — and the highest probability becomes the final predicted growth stage."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>Why use leaf density (LPF) as the key biological indicator?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"Biological evidence shows that Leaf Area Index and leaf count increase systematically across tomato growth stages [2][6]. This means LPF — measured as the fraction of leaf pixels in the image — changes predictably from seedling (sparse, ~0.08) through vegetative and flowering (dense, ~0.65) and slightly declines at fruiting. This makes LPF a reliable, quantitative structural signal that complements the CNN's visual features, particularly for resolving ambiguous stage boundaries."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>Why is COCO JSON never fed into U-Net?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"COCO JSON is a metadata file — not an image. It stores polygon coordinates describing where leaves are in an image. U-Net expects a pixel array (image tensor) as input, not a JSON file. The COCO JSON is only used during preprocessing to generate binary mask images, which are then used as the ground truth targets during training. The actual input to U-Net is always the original RGB image."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>Why use nearest-neighbor interpolation for masks but bilinear for images?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"The binary mask only contains values 0 or 1. Bilinear interpolation creates intermediate values (e.g. 0.4, 0.7) by blending neighbouring pixels — this would introduce non-integer values into the mask, destroying the binary labels the model needs. Nearest-neighbor interpolation always snaps to the closest original pixel value, preserving the strict 0/1 binary nature of the mask."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>What are skip connections in U-Net and why are they important?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"Skip connections are direct shortcuts from each encoder level to its corresponding decoder level. During downsampling (the encoder path), fine spatial details like exact leaf boundaries and small leaf shapes are progressively lost as the image is compressed. Skip connections carry those fine details directly to the decoder, allowing it to reconstruct the mask with precise boundaries. Without skip connections, the output mask would be blurry and inaccurate — leading to less reliable Leaf Pixel Fraction computation."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>Why annotate on the original full-resolution image, not the resized 224×224?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"Annotating at full resolution is better because: (1) original images have more pixel detail, making it easier to accurately trace leaf boundaries with the Smart Polygon tool; (2) higher resolution reduces annotation errors at leaf edges. After exporting in COCO JSON format, both the images and their corresponding masks are resized consistently to 224×224 during preprocessing. The polygon coordinates are scaled together with the image, so the masks remain spatially aligned. This is acceptable and technically correct practice."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>Why use transfer learning rather than training from scratch?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"Our dataset has only ~1,600 images, which is too small to train a deep CNN from scratch without severe overfitting [4][11]. Transfer learning using ImageNet pre-trained weights provides a strong starting point — the model already knows how to detect edges, textures, and shapes from millions of natural images. Fine-tuning then specialises these weights for tomato leaf patterns. This significantly reduces overfitting and allows the small dataset to achieve strong performance."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>How are both branches trained simultaneously?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"During each training iteration, the same image is fed into both branches in a single forward pass. Two losses are computed: Binary Cross-Entropy (BCE) for the U-Net segmentation branch comparing the predicted mask against the true binary mask, and Categorical Cross-Entropy for the final classification comparing predicted stage probabilities against the true stage label. Both losses backpropagate through their respective branches independently, updating the U-Net weights and CNN weights separately via Adam optimizer. This means both branches learn from the same training data at the same time, in a joint end-to-end training process."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>What is the hardest classification challenge in this research?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"The most challenging boundary is between the Vegetative and Flowering stages [5][11]. During this transition, a plant can simultaneously exhibit features of both stages — the canopy is fully formed but flowers may only be beginning to emerge. Both the visual appearance and the LPF value are at mid-range values. The dual-branch architecture helps here: even if the CNN visual features are ambiguous, the FC layer can leverage the LPF value combined with any detected colour or texture changes to resolve the boundary more accurately than either branch alone."</p></div>
+  </div>
+  <div class="viva-q">
+    <div class="viva-q-head" onclick="toggleViva(this)"><span>What is the BBCH scale and why do you use it?</span><span class="chevron">▼</span></div>
+    <div class="viva-q-body"><p>"The BBCH (Biologische Bundesanstalt, Bundessortenamt und CHemische Industrie) scale is a standardized numerical system for describing plant growth stages from germination through maturity [7]. It is widely adopted for tomato phenology documentation in research and agriculture. Using BBCH codes ensures our stage definitions are scientifically grounded and comparable to existing literature — our four stages (Seedling BBCH 00-13, Vegetative 15-19, Flowering 60-69, Fruiting 70-79) align precisely with established biological milestones."</p></div>
+  </div>
+</div>
+
+<!-- ======= REFS ======= -->
+<div class="section" id="sec-refs">
+  <h2>All 14 References</h2>
+  <div class="card">
+    <div class="ref-item"><div class="ref-num">[1]</div><div class="ref-text"><strong>Deb et al. (2024)</strong> — "A CNN-based model to count the leaves of rosette plants (LC-Net)." <em>Scientific Reports</em>, 14(1), 1496. doi:10.1038/s41598-024-51983-y</div></div>
+    <div class="ref-item"><div class="ref-num">[2]</div><div class="ref-text"><strong>Rijal et al. (2025)</strong> — "Plant Height, Number Of Leaves, And Flowers Of Tomato (Solanum lycopersicum L) After The Application Of Eco-Enzyme From Nutmeg Leaf Waste." <em>Jurnal Bioedukasi</em>, 8(1), 516–527. <span class="tag tag-blue">Key biological justification for leaf density as indicator</span></div></div>
+    <div class="ref-item"><div class="ref-num">[3]</div><div class="ref-text"><strong>Kang et al. (2024)</strong> — "Toward Real Scenery: A Lightweight Tomato Growth Inspection Algorithm for Leaf Disease Detection and Fruit Counting." <em>Plant Phenomics</em>, 6, 0174. <span class="tag tag-amber">Existing tomato work focuses on fruit, not whole-plant stage</span></div></div>
+    <div class="ref-item"><div class="ref-num">[4]</div><div class="ref-text"><strong>Schieck et al. (2023)</strong> — "Comparison of deep learning methods for grapevine growth stage recognition." <em>Computers and Electronics in Agriculture</em>, 211, 107944. <span class="tag tag-green">Transfer learning + Adam optimizer practices</span></div></div>
+    <div class="ref-item"><div class="ref-num">[5]</div><div class="ref-text"><strong>Fu et al. (2024)</strong> — "Multi-stage tomato fruit recognition method based on improved YOLOv8." <em>Frontiers in Plant Science</em>, 15, 1447263. <span class="tag tag-amber">Tomato fruit detection, not growth stage</span></div></div>
+    <div class="ref-item"><div class="ref-num">[6]</div><div class="ref-text"><strong>Abdelkader et al. (2019)</strong> — "Applying a digital method for measuring leaf area index of tomato plants." <em>ISPC 2019 Conference</em>. <span class="tag tag-green">LAI increases systematically across growth stages — key biological basis</span></div></div>
+    <div class="ref-item"><div class="ref-num">[7]</div><div class="ref-text"><strong>Cardoso et al. (2021)</strong> — "Phenological growth stages of Gaúcho tomato based on the BBCH scale." <em>Comunicata Scientiae</em>, 12, e3490. <span class="tag tag-green">BBCH scale authority for stage definitions</span></div></div>
+    <div class="ref-item"><div class="ref-num">[8]</div><div class="ref-text"><strong>Puig et al. (2025)</strong> — "Convolutional neural networks for accurate estimation of canopy cover." <em>Smart Agriculture Technology</em>, 10, 100750.</div></div>
+    <div class="ref-item"><div class="ref-num">[9]</div><div class="ref-text"><strong>Baar et al. (2022)</strong> — "Non-destructive Leaf Area Index estimation via guided optical imaging for large scale greenhouse environments." <em>Computers and Electronics in Agriculture</em>, 197, 106911.</div></div>
+    <div class="ref-item"><div class="ref-num">[10]</div><div class="ref-text"><strong>Fu et al. (2025)</strong> — "Maize Leaf Area Index Estimation Based on Machine Learning Algorithm and Computer Vision." <em>Agriculture</em>, 15(12), 1272.</div></div>
+    <div class="ref-item"><div class="ref-num">[11]</div><div class="ref-text"><strong>Li et al. (2025)</strong> — "Wheat growth stage identification method based on multimodal data." <em>European Journal of Agronomy</em>, 162, 127423. <span class="tag tag-green">Achieves 97.6% accuracy — our main CNN benchmark</span></div></div>
+    <div class="ref-item"><div class="ref-num">[12]</div><div class="ref-text"><strong>Naito et al. (2025)</strong> — "Leaf area estimation in High-Wire tomato cultivation using plant body scanning." <em>AgriEngineering</em>, 7(7), 206.</div></div>
+    <div class="ref-item"><div class="ref-num">[13]</div><div class="ref-text"><strong>Sharma et al. (2025)</strong> — "Design and Implementation of Real-Time Tomato Plant Growth Monitoring System using Deep Learning based YOLO and Raspberry Pi." <em>Applied Artificial Intelligence</em>, 39(1). <span class="tag tag-green">Augmentation practices</span></div></div>
+    <div class="ref-item"><div class="ref-num">[14]</div><div class="ref-text"><strong>Li et al. (2023)</strong> — "Non-destructive monitoring method for leaf area of Brassica napus based on image processing and deep learning." <em>Frontiers in Plant Science</em>, 14, 1163700. <span class="tag tag-green">U-Net leaf segmentation: mIoU 90%, area accuracy 96.77%</span></div></div>
+  </div>
+
+  <h2>Key Reference Mapping</h2>
+  <table>
+    <thead><tr><th>Claim in Presentation</th><th>References</th></tr></thead>
+    <tbody>
+      <tr><td>Leaf density increases across growth stages (biological justification)</td><td>[2][6]</td></tr>
+      <tr><td>Manual inspection is labour-intensive and not scalable</td><td>[1][2]</td></tr>
+      <tr><td>CNN outperforms classical ML for growth stage recognition</td><td>[11]</td></tr>
+      <tr><td>Transfer learning from ImageNet is effective for plant datasets</td><td>[4][11]</td></tr>
+      <tr><td>U-Net can achieve high accuracy for leaf segmentation</td><td>[14]</td></tr>
+      <tr><td>Existing tomato DL work focuses on fruit, not whole-plant stages</td><td>[3][5]</td></tr>
+      <tr><td>BBCH scale definitions for stage labelling</td><td>[7]</td></tr>
+      <tr><td>Data augmentation improves robustness</td><td>[11][13]</td></tr>
+      <tr><td>Adam optimizer with lr=0.001</td><td>[4]</td></tr>
+      <tr><td>70/20/10 dataset split</td><td>[14]</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function toggleViva(el) {
+  const body = el.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  el.classList.toggle('open', !isOpen);
+}
+</script>
+</body>
+</html>
